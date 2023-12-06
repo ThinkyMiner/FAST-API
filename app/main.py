@@ -34,7 +34,10 @@ async def root():
 
 @app.get("/posts")
 def post():
-    return {"data": myposts}
+    cursor.execute("""SELECT * FROM products""")
+    posts = cursor.fetchall()
+    # print(posts)
+    return {"data": posts}
 
 @app.post("/posts")# or to change the status code we can just pass another attribute next to posts as status_code=status.HTTP....
 def create_post(post : Post):

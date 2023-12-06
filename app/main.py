@@ -8,6 +8,7 @@ app = FastAPI()
 class Post(BaseModel):
     title : str
     content : str
+    published: bool
     id : int = 1
 
 while True:
@@ -34,17 +35,17 @@ async def root():
 
 @app.get("/posts")
 def post():
-    cursor.execute("""SELECT * FROM products""")
+    cursor.execute("""SELECT * FROM posts""")
     posts = cursor.fetchall()
     # print(posts)
     return {"data": posts}
 
-@app.post("/posts")# or to change the status code we can just pass another attribute next to posts as status_code=status.HTTP....
+@app.post("/posts", status_code=status.HTTP_201_CREATED)# or to change the status code we can just pass another attribute next to posts as status_code=status.HTTP....
 def create_post(post : Post):
-    post_dict = post.dict()
-    myposts.append(post_dict)
-    raise HTTPException(status_code=status.HTTP_201_CREATED , detail=post_dict)
-    # return {"data": post_dict}
+    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, (post.title , post.content, post.published))
+    new_post = cursor.fetchone()
+    conn.commit()
+    return {"data": new_post}
 # the things we actually require. -> title str, content str 
 
 def findPost(id):

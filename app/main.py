@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+
 app = FastAPI()
 
 class Post(BaseModel):
@@ -21,17 +22,10 @@ while True:
         print("Connecting to server has some issues")
         print("Error : ", error)
         time.sleep(2)
-# class UpdatePost(BaseModel):
-#     title : str
-#     content : str
-#     id : int = 1
-
-myposts = [{"title": "title of post 1" , "content": "content of post 1" , "id": 2}]
 
 @app.get("/")
 async def root():
     return {"message": "World"}
-
 
 @app.get("/posts")
 def post():
@@ -65,12 +59,6 @@ def indexPost(id: int , response: Response):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail=f"post with id : {id} was not found")
     return {"post" : indexed_post}
 
-def find_index(id : int ):
-    for i,p in enumerate(myposts):
-        if p['id'] == id:
-            return i
-
-
 @app.delete("/posts/{id}" , status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
     cursor.execute("""DELETE FROM posts WHERE id = %s returning *""", (str(id)))
@@ -81,10 +69,9 @@ def delete_post(id: int):
     else:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-
 @app.put("/posts/{id}")
 def update_post(id: int, post:Post):
-    cursor.execute("""UPDATE posts SET title = %s , content = %s , published = %s RETURNING * """ , (post.title , post.content , post.published))
+    cursor.execute("""UPDATE posts SET title = %s , content = %s , published = %s WHERE id = %s RETURNING * """ , (post.title , post.content , post.published , str(id)))
     updated_post = cursor.fetchone()
     conn.commit()
     if updated_post == None:

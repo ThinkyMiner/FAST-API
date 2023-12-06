@@ -55,13 +55,15 @@ def findPost(id):
 
 @app.get("/posts/{id}")
 def indexPost(id: int , response: Response):
-    p = findPost(id)
-    if not p:
+    cursor.execute("""SELECT * FROM posts WHERE id = %s""" , (str(id)))
+    indexed_post = cursor.fetchone()
+    print(indexed_post)
+    
+    if not indexed_post:
         # response.status_code = status.HTTP_404_NOT_FOUND
         # return {"message": f"post with id : {id} was not found"}
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail=f"post with id : {id} was not found")
-    print(p)
-    return {"post" : p}
+    return {"post" : indexed_post}
 
 def find_index(id : int ):
     for i,p in enumerate(myposts):

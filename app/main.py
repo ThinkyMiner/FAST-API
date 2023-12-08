@@ -6,6 +6,7 @@ import time
 from sqlalchemy.orm import Session
 from . import models, schemas
 from .database import engine, SessionLocal,get_db
+from typing import List
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,18 +28,18 @@ async def root():
     return {"message": "World"}
 
 
-@app.get("/posts")
+@app.get("/posts", response_model=List[schemas.Post])
 def post(db : Session = Depends(get_db)):
     # the common sql code used is in the 2 lines lower
     # cursor.execute("""SELECT * FROM posts""")
     # posts = cursor.fetchall()
     # print(posts)
     posts = db.query(models.Post).all()
-    return {"data": posts}
+    return posts
 
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)# or to change the status code we can just pass another attribute next to posts as status_code=status.HTTP....
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)# or to change the status code we can just pass another attribute next to posts as status_code=status.HTTP....
 def create_post(post : schemas.CreatePost, db : Session = Depends(get_db)):
     # cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, (post.title , post.content, post.published))
     # new_post = cursor.fetchone()
@@ -48,12 +49,12 @@ def create_post(post : schemas.CreatePost, db : Session = Depends(get_db)):
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return {"data": new_post}
+    return new_post
 # the things we actually require. -> title str, content str 
 
 
 
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model=schemas.Post)
 def indexPost(id: int , response: Response, db : Session = Depends(get_db)):
     # cursor.execute("""SELECT * FROM posts WHERE id = %s""" , (str(id)))
     # indexed_post = cursor.fetchone()
@@ -64,7 +65,7 @@ def indexPost(id: int , response: Response, db : Session = Depends(get_db)):
         # response.status_code = status.HTTP_404_NOT_FOUND
         # return {"message": f"post with id : {id} was not found"}
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail=f"post with id : {id} was not found")
-    return {"post" : indexed_post}
+    return indexed_post
 
 
 
@@ -84,7 +85,7 @@ def delete_post(id: int, db : Session = Depends(get_db)):
 
 
 
-@app.put("/posts/{id}")
+@app.put("/posts/{id}", response_model=schemas.Post)
 def update_post(id: int, post:schemas.CreatePost, db : Session = Depends(get_db)):
     # cursor.execute("""UPDATE posts SET title = %s , content = %s , published = %s WHERE id = %s RETURNING * """ , (post.title , post.content , post.published , str(id)))
     # updated_post = cursor.fetchone()
@@ -95,7 +96,13 @@ def update_post(id: int, post:schemas.CreatePost, db : Session = Depends(get_db)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail=f"post with id : {id} does not exist")
     posts.update(post.dict())
     db.commit()
-    return {"message": posts.first()}
+    return posts.first()
 
 
-# connection failed: Connection refused Is the server running on that host and accepting TCP/IP connections? connection to server at "localhost" (::1), port 5432 failed: Connection refused Is the server running on that host and accepting TCP/IP connections?
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+def create_user(user: schemas.UserCreate, db : Session = Depends(get_db)):
+    new_user = models.User(**user.dict())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user

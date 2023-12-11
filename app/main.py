@@ -9,6 +9,7 @@ from .database import engine, SessionLocal,get_db
 from typing import List
 from . import utils
 from .routers import user, posts, auth
+from .config import settings
 
 models.Base.metadata.create_all(bind=engine)
 

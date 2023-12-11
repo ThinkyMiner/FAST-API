@@ -11,12 +11,12 @@ from typing import List
 router = APIRouter()
 
 @router.get("/posts", response_model=List[schemas.Post])
-def post(db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def post(db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user), limit: int = 10, skip: int = 0):
     # the common sql code used is in the 2 lines lower
     # cursor.execute("""SELECT * FROM posts""")
     # posts = cursor.fetchall()
     # print(posts)
-    posts = db.query(models.Post).all()
+    posts = db.query(models.Post).limit(limit).offset(skip).all()
     return posts
 
 
@@ -27,7 +27,7 @@ def create_post(post : schemas.CreatePost, db : Session = Depends(get_db), user_
     # new_post = cursor.fetchone()
     # conn.commit()
     print(user_id)
-    new_post = models.Post(**post.dict())
+    new_post = models.Post(**post.dict(), owner_id = user_id.id) # type: ignore
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -41,6 +41,7 @@ def indexPost(id: int , response: Response, db : Session = Depends(get_db), user
     # cursor.execute("""SELECT * FROM posts WHERE id = %s""" , (str(id)))
     # indexed_post = cursor.fetchone()
     # print(indexed_post)
+    print(limit)
     indexed_post = db.query(models.Post).filter(models.Post.id == int(id)).first()
     
     if not indexed_post:
@@ -56,12 +57,14 @@ def delete_post(id: int, db : Session = Depends(get_db), user_id: int = Depends(
     # cursor.execute("""DELETE FROM posts WHERE id = %s returning *""", (str(id)))
     # deleted_post = cursor.fetchone()
     # conn.commit()#very important line of code remember this
-    deleted_post = db.query(models.Post).filter(models.Post.id == id).first()
-    
-    if deleted_post == None:
+    deleted_post = db.query(models.Post).filter(models.Post.id == id)
+    post = deleted_post.first()
+    if post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail=f"post with id : {id} does not exist")
+    if post.owner_id != user_id.id: # type: ignore
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail = "Not authorized to perform requested action")
     else:
-        db.delete(deleted_post)
+        db.delete(post)
         db.commit()
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -76,6 +79,8 @@ def update_post(id: int, post:schemas.CreatePost, db : Session = Depends(get_db)
     updated_post = posts.first()
     if updated_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND , detail=f"post with id : {id} does not exist")
+    if updated_post.owner_id != user_id.id: # type: ignore
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail = "Not authorized to perform requested action")
     posts.update(post.dict()) # type: ignore
     db.commit()
     return posts.first()

@@ -8,7 +8,7 @@ from . import models, schemas
 from .database import engine, SessionLocal,get_db
 from typing import List
 from . import utils
-from .routers import user, posts
+from .routers import user, posts, auth
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,6 +27,7 @@ while True:
 
 app.include_router(posts.router)
 app.include_router(user.router)
+app.include_router(auth.router)
 
 
 @app.get("/")

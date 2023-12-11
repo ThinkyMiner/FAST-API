@@ -1,3 +1,7 @@
+from click import get_current_context
+from fastapi.security import OAuth2
+from . import oauth2
+from app.routers.oauth2 import get_current_user
 from .. import models, schemas, utils
 from fastapi import Body, FastAPI , Response , status , HTTPException , Depends, APIRouter
 from sqlalchemy.orm import Session
@@ -7,7 +11,7 @@ from typing import List
 router = APIRouter()
 
 @router.get("/posts", response_model=List[schemas.Post])
-def post(db : Session = Depends(get_db)):
+def post(db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
     # the common sql code used is in the 2 lines lower
     # cursor.execute("""SELECT * FROM posts""")
     # posts = cursor.fetchall()
@@ -18,11 +22,11 @@ def post(db : Session = Depends(get_db)):
 
 
 @router.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)# or to change the status code we can just pass another attribute next to posts as status_code=status.HTTP....
-def create_post(post : schemas.CreatePost, db : Session = Depends(get_db)):
+def create_post(post : schemas.CreatePost, db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
     # cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING * """, (post.title , post.content, post.published))
     # new_post = cursor.fetchone()
     # conn.commit()
-    
+    print(user_id)
     new_post = models.Post(**post.dict())
     db.add(new_post)
     db.commit()
@@ -33,7 +37,7 @@ def create_post(post : schemas.CreatePost, db : Session = Depends(get_db)):
 
 
 @router.get("/posts/{id}", response_model=schemas.Post)
-def indexPost(id: int , response: Response, db : Session = Depends(get_db)):
+def indexPost(id: int , response: Response, db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
     # cursor.execute("""SELECT * FROM posts WHERE id = %s""" , (str(id)))
     # indexed_post = cursor.fetchone()
     # print(indexed_post)
@@ -48,7 +52,7 @@ def indexPost(id: int , response: Response, db : Session = Depends(get_db)):
 
 
 @router.delete("/posts/{id}" , status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int, db : Session = Depends(get_db)):
+def delete_post(id: int, db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
     # cursor.execute("""DELETE FROM posts WHERE id = %s returning *""", (str(id)))
     # deleted_post = cursor.fetchone()
     # conn.commit()#very important line of code remember this
@@ -64,7 +68,7 @@ def delete_post(id: int, db : Session = Depends(get_db)):
 
 
 @router.put("/posts/{id}", response_model=schemas.Post)
-def update_post(id: int, post:schemas.CreatePost, db : Session = Depends(get_db)):
+def update_post(id: int, post:schemas.CreatePost, db : Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
     # cursor.execute("""UPDATE posts SET title = %s , content = %s , published = %s WHERE id = %s RETURNING * """ , (post.title , post.content , post.published , str(id)))
     # updated_post = cursor.fetchone()
     # conn.commit()

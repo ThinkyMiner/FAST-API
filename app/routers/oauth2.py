@@ -1,8 +1,7 @@
-from sqlite3 import Date
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from .. import schemas
-from fastapi import FastAPI , Response , status , HTTPException , Depends, APIRouter
+from fastapi import status , HTTPException , Depends
 from fastapi.security import OAuth2PasswordBearer
 from ..config import settings
 
